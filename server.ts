@@ -1,11 +1,8 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 // Export the app for Vercel serverless functions
 export const app = express();
@@ -77,6 +74,7 @@ app.post("/api/checkout", async (req, res) => {
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -90,6 +88,16 @@ async function startServer() {
       res.sendFile("dist/index.html", { root: "." });
     });
   }
+
+  // Error handler to ensure JSON responses even on crashes
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  });
 
   // Only listen if not on Vercel (Vercel handles listening)
   if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {

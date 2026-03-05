@@ -26,28 +26,31 @@ export default function ProductCard({ product }: { product: Product, key?: strin
       console.log('Response status:', response.status);
       
       const contentType = response.headers.get("content-type");
+      let errorMessage = `Server error: ${response.status}`;
+      
       if (contentType && contentType.indexOf("application/json") !== -1) {
         const data = await response.json();
         console.log('Response data:', data);
         
-        if (!response.ok) {
-          throw new Error(data.error || `Server error: ${response.status}`);
-        }
-        
-        if (data.url) {
+        if (response.ok && data.url) {
           console.log('Redirecting to:', data.url);
           window.location.href = data.url;
-        } else {
-          throw new Error('No checkout URL received from server');
+          return;
         }
+        errorMessage = data.error || data.message || errorMessage;
       } else {
         const text = await response.text();
         console.error('Non-JSON response received:', text);
-        throw new Error(`Server returned an unexpected response (Status ${response.status}). This usually means the backend API is not running or the route is incorrect.`);
+        // If it's a 500 and we got HTML, it's likely a Vercel crash or missing env var
+        if (response.status === 500) {
+          errorMessage = "Internal Server Error (500). This usually means a crash on the server or missing Environment Variables in Vercel.";
+        }
       }
+      
+      throw new Error(errorMessage);
     } catch (error: any) {
       console.error('Checkout error details:', error);
-      alert(`Checkout Error: ${error.message}\n\nIf you are on Vercel, ensure you have configured your Serverless Functions or vercel.json correctly.`);
+      alert(`Checkout Error: ${error.message}\n\nIf you are on Vercel, please check your Vercel Logs for the exact error.`);
     } finally {
       setLoading(false);
     }
