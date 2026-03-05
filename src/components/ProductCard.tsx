@@ -24,22 +24,30 @@ export default function ProductCard({ product }: { product: Product, key?: strin
       });
       
       console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
       
-      if (!response.ok) {
-        throw new Error(data.error || `Server error: ${response.status}`);
-      }
-      
-      if (data.url) {
-        console.log('Redirecting to:', data.url);
-        window.location.href = data.url;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (!response.ok) {
+          throw new Error(data.error || `Server error: ${response.status}`);
+        }
+        
+        if (data.url) {
+          console.log('Redirecting to:', data.url);
+          window.location.href = data.url;
+        } else {
+          throw new Error('No checkout URL received from server');
+        }
       } else {
-        throw new Error('No checkout URL received from server');
+        const text = await response.text();
+        console.error('Non-JSON response received:', text);
+        throw new Error(`Server returned an unexpected response (Status ${response.status}). This usually means the backend API is not running or the route is incorrect.`);
       }
     } catch (error: any) {
       console.error('Checkout error details:', error);
-      alert(`Checkout Error: ${error.message}. \n\nCheck the browser console for more details.`);
+      alert(`Checkout Error: ${error.message}\n\nIf you are on Vercel, ensure you have configured your Serverless Functions or vercel.json correctly.`);
     } finally {
       setLoading(false);
     }
