@@ -1,7 +1,10 @@
 import React from 'react';
 import { Anchor, ShoppingCart, Menu } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export default function Navbar() {
+  const { totalItems } = useCart();
+
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-maritime-navy/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,10 +42,18 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-maritime-navy/5 rounded-full transition-colors relative">
+            <a href="/checkout" onClick={(e) => {
+              e.preventDefault();
+              window.history.pushState({}, '', '/checkout');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }} className="p-2 hover:bg-maritime-navy/5 rounded-full transition-colors relative">
               <ShoppingCart className="w-6 h-6" />
-              <span className="absolute top-0 right-0 w-4 h-4 bg-golden-yellow text-maritime-navy text-[10px] flex items-center justify-center rounded-full font-bold">0</span>
-            </button>
+              {totalItems > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 bg-golden-yellow text-maritime-navy text-[10px] flex items-center justify-center rounded-full font-bold">
+                  {totalItems}
+                </span>
+              )}
+            </a>
             <button className="md:hidden p-2 hover:bg-maritime-navy/5 rounded-full transition-colors">
               <Menu className="w-6 h-6" />
             </button>

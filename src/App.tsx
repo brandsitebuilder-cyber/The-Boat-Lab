@@ -6,6 +6,7 @@ import ProductCard from './components/ProductCard';
 import Success from './pages/Success';
 import Cancel from './pages/Cancel';
 import Products from './pages/Products';
+import Checkout from './pages/Checkout';
 import { PRODUCTS } from './data/products';
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
   if (path === '/success') return <Success />;
   if (path === '/cancel') return <Cancel />;
   if (path === '/products') return <Products />;
+  if (path === '/checkout') return <Checkout />;
 
   return (
     <div className="min-h-screen">

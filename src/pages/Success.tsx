@@ -1,8 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useCart } from '../context/CartContext';
 
 export default function Success() {
+  const { clearCart } = useCart();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('clear_cart') === 'true') {
+      clearCart();
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-marine-gray p-4">
       <motion.div 

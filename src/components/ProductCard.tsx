@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Loader2 } from 'lucide-react';
+import { ShoppingCart, Check } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 interface Product {
   id: string;
@@ -13,60 +14,13 @@ interface Product {
 }
 
 export default function ProductCard({ product }: { product: Product, key?: string }) {
-  const [loading, setLoading] = useState(false);
+  const { addToCart } = useCart();
+  const [added, setAdded] = useState(false);
 
-  const handleCheckout = async () => {
-    console.log('Initiating checkout for:', product.name);
-    setLoading(true);
-
-    // If a direct Stripe Payment Link is provided, use it immediately
-    if (product.stripeLink) {
-      console.log('Redirecting to direct Stripe Payment Link:', product.stripeLink);
-      window.location.href = product.stripeLink;
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-idempotency-key': crypto.randomUUID() // Send idempotency key from client
-        },
-        body: JSON.stringify({ items: [{ id: product.id, quantity: 1 }] }),
-      });
-      
-      console.log('Response status:', response.status);
-      
-      const contentType = response.headers.get("content-type");
-      let errorMessage = `Server error: ${response.status}`;
-      
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        const data = await response.json();
-        console.log('Response data:', data);
-        
-        if (response.ok && data.url) {
-          console.log('Redirecting to:', data.url);
-          window.location.href = data.url;
-          return;
-        }
-        errorMessage = data.error || data.message || errorMessage;
-      } else {
-        const text = await response.text();
-        console.error('Non-JSON response received:', text);
-        // If it's a 500 and we got HTML, it's likely a Vercel crash or missing env var
-        if (response.status === 500) {
-          errorMessage = "Internal Server Error (500). This usually means a crash on the server or missing Environment Variables in Vercel.";
-        }
-      }
-      
-      throw new Error(errorMessage);
-    } catch (error: any) {
-      console.error('Checkout error details:', error);
-      alert(`Checkout Error: ${error.message}\n\nIf you are on Vercel, please check your Vercel Logs for the exact error.`);
-    } finally {
-      setLoading(false);
-    }
+  const handleAddToCart = () => {
+    addToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
   };
 
   return (
@@ -101,16 +55,23 @@ export default function ProductCard({ product }: { product: Product, key?: strin
         </p>
         
         <button 
-          onClick={handleCheckout}
-          disabled={loading}
-          className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+          onClick={handleAddToCart}
+          disabled={added}
+          className={`w-full flex items-center justify-center gap-2 transition-all duration-300 ${
+            added 
+              ? 'bg-green-500 text-white py-3 rounded-lg font-bold' 
+              : 'btn-primary'
+          }`}
         >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+          {added ? (
+            <>
+              <Check className="w-5 h-5" />
+              Added to Cart
+            </>
           ) : (
             <>
               <ShoppingCart className="w-5 h-5" />
-              Buy Now
+              Add to Cart
             </>
           )}
         </button>

@@ -114,14 +114,14 @@ app.post("/api/checkout", async (req, res) => {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: `${appUrl.replace(/\/$/, "")}/success`,
+      success_url: `${appUrl.replace(/\/$/, "")}/success?clear_cart=true`,
       cancel_url: `${appUrl.replace(/\/$/, "")}/cancel`,
     }, {
       idempotencyKey
     });
 
     console.log("Stripe session created:", session.id);
-    res.json({ url: session.url });
+    res.json({ url: session.url, sessionId: session.id });
   } catch (error: any) {
     // Error Handling: Log the real error server-side, but sanitize the client response
     console.error("Stripe error details:", error);
