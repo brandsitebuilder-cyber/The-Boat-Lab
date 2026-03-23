@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Trash2, Plus, Minus, Loader2, ArrowLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useCart } from '../context/CartContext';
-import { getStripe } from '../lib/stripe';
 
 export default function Checkout() {
   const { state, updateQuantity, removeFromCart, subtotal, totalItems } = useCart();
@@ -29,17 +28,6 @@ export default function Checkout() {
         const data = await response.json();
         
         if (response.ok) {
-          if (data.sessionId) {
-            // Use @stripe/stripe-js to redirect if sessionId is provided
-            const stripe = await getStripe();
-            if (stripe) {
-              const { error } = await (stripe as any).redirectToCheckout({ sessionId: data.sessionId });
-              if (error) throw new Error(error.message);
-              return;
-            }
-          }
-          
-          // Fallback to URL redirect
           if (data.url) {
             window.location.href = data.url;
             return;
