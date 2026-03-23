@@ -1,7 +1,16 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
-import { PRODUCTS } from '../src/data/products';
 import crypto from 'crypto';
+
+// Server-side product catalog mapping frontend IDs to official Stripe Price IDs.
+// IMPORTANT: Replace these placeholder 'price_...' IDs with your actual 
+// Stripe Price IDs from your Stripe Dashboard (Products -> Pricing).
+const PRODUCTS: Record<string, string> = {
+  'cutting-board': 'price_1TEEpq3fEF4PIFrvIkgJdmQH',
+  'cup-holder': 'price_1TEGB73fEF4PIFrv1TF4cbOr',
+  'mooring-rope': 'price_1TEG8c3fEF4PIFrvqhN70yyk',
+  'rod-holder': 'price_1TEGAF3fEF4PIFrvV8SP4x8m',
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -30,22 +39,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Server configuration error: APP_URL is missing." });
     }
 
-    // Server-Side Integrity: Look up products from our trusted catalog
+    // Server-Side Integrity: Look up Stripe Price IDs from our local catalog
     const lineItems = items.map((item: any) => {
-      const product = PRODUCTS.find((p) => p.id === item.id);
-      if (!product) {
-        throw new Error(`Product with ID ${item.id} not found`);
+      const priceId = PRODUCTS[item.id];
+      if (!priceId) {
+        throw new Error(`Product with ID ${item.id} not found in server catalog`);
       }
       
       return {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: product.name,
-            images: product.image ? [product.image] : [],
-          },
-          unit_amount: Math.round(product.price * 100),
-        },
+        price: priceId,
         quantity: item.quantity || 1,
       };
     });
