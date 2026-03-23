@@ -1,12 +1,54 @@
 import express from "express";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import crypto from "crypto";
+import { PRODUCTS } from "./src/data/products";
 
 dotenv.config();
 
 // Export the app for Vercel serverless functions
 export const app = express();
 const PORT = 3000;
+
+// Webhook must be registered BEFORE express.json() so it can receive the raw body
+app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  if (!secretKey || !webhookSecret) {
+    console.error("Missing Stripe keys for webhook");
+    return res.status(400).send("Webhook configuration error");
+  }
+
+  const stripeInstance = new Stripe(secretKey);
+  const signature = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    // Verify the webhook signature
+    event = stripeInstance.webhooks.constructEvent(
+      req.body,
+      signature as string,
+      webhookSecret
+    );
+  } catch (err: any) {
+    console.error(`⚠️  Webhook signature verification failed:`, err.message);
+    return res.status(400).send(`Webhook Error: Signature verification failed`);
+  }
+
+  // Handle the event (idempotency is handled by Stripe sending the same event ID, 
+  // but in a real DB you'd check if event.id was already processed)
+  console.log(`✅ Success: Webhook received! Event type: ${event.type}, ID: ${event.id}`);
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    console.log(`💰 Payment received for session: ${session.id}`);
+    // Fulfill the order here (e.g., update DB, send email)
+  }
+
+  res.json({ received: true });
+});
 
 app.use(express.json());
 
@@ -23,7 +65,7 @@ app.get("/api/health", (req, res) => {
 app.post("/api/checkout", async (req, res) => {
   try {
     const { items } = req.body;
-    console.log("Checkout request received for items:", items?.map((i: any) => i.name));
+    console.log("Checkout request received for items:", items?.map((i: any) => i.id));
     
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey || secretKey === "sk_test_...") {
@@ -45,29 +87,45 @@ app.post("/api/checkout", async (req, res) => {
       return res.status(500).json({ error: "Server configuration error: APP_URL is missing." });
     }
 
-    const session = await stripeInstance.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: items.map((item: any) => ({
+    // Server-Side Integrity: Look up products from our trusted catalog
+    const lineItems = items.map((item: any) => {
+      const product = PRODUCTS.find((p) => p.id === item.id);
+      if (!product) {
+        throw new Error(`Product with ID ${item.id} not found`);
+      }
+      
+      return {
         price_data: {
           currency: "usd",
           product_data: {
-            name: item.name,
-            images: item.image ? [item.image] : [],
+            name: product.name,
+            images: product.image ? [product.image] : [],
           },
-          unit_amount: Math.round(item.price * 100),
+          unit_amount: Math.round(product.price * 100),
         },
-        quantity: 1,
-      })),
+        quantity: item.quantity || 1,
+      };
+    });
+
+    // Idempotency: Generate a unique key for this checkout attempt
+    const idempotencyKey = req.headers['x-idempotency-key'] as string || crypto.randomUUID();
+
+    const session = await stripeInstance.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: lineItems,
       mode: "payment",
       success_url: `${appUrl.replace(/\/$/, "")}/success`,
       cancel_url: `${appUrl.replace(/\/$/, "")}/cancel`,
+    }, {
+      idempotencyKey
     });
 
     console.log("Stripe session created:", session.id);
     res.json({ url: session.url });
   } catch (error: any) {
+    // Error Handling: Log the real error server-side, but sanitize the client response
     console.error("Stripe error details:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Payment initialization failed. Please try again later." });
   }
 });
 

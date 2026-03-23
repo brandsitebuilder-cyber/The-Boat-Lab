@@ -6,7 +6,11 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-maritime-navy/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-28">
-          <div className="flex items-center gap-3">
+          <a href="/" onClick={(e) => {
+            e.preventDefault();
+            window.history.pushState({}, '', '/');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }} className="flex items-center gap-3">
             <img 
               src="https://drive.google.com/thumbnail?id=1lfHgTLJz97bPF0hPCKX_Gpap_wwK-Bsg&sz=w500" 
               alt="The Boat Lab Logo" 
@@ -21,11 +25,15 @@ export default function Navbar() {
               }}
             />
             <span className="text-xl font-black tracking-tighter uppercase text-maritime-navy">The Boat <span className="text-safety-orange">Lab</span></span>
-          </div>
+          </a>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium uppercase tracking-widest">
             <a href="#" className="hover:text-safety-orange transition-colors">Vessels</a>
-            <a href="#" className="hover:text-safety-orange transition-colors">Gear</a>
+            <a href="/products" onClick={(e) => {
+              e.preventDefault();
+              window.history.pushState({}, '', '/products');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }} className="hover:text-safety-orange transition-colors">Gear</a>
             <a href="#" className="hover:text-safety-orange transition-colors">Tech</a>
             <a href="#" className="hover:text-safety-orange transition-colors">Support</a>
           </div>

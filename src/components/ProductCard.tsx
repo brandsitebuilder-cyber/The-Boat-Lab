@@ -6,8 +6,10 @@ interface Product {
   name: string;
   price: number;
   image: string;
+  hoverImage?: string;
   description: string;
   imageClassName?: string;
+  stripeLink?: string;
 }
 
 export default function ProductCard({ product }: { product: Product, key?: string }) {
@@ -16,11 +18,22 @@ export default function ProductCard({ product }: { product: Product, key?: strin
   const handleCheckout = async () => {
     console.log('Initiating checkout for:', product.name);
     setLoading(true);
+
+    // If a direct Stripe Payment Link is provided, use it immediately
+    if (product.stripeLink) {
+      console.log('Redirecting to direct Stripe Payment Link:', product.stripeLink);
+      window.location.href = product.stripeLink;
+      return;
+    }
+
     try {
       const response = await fetch('/api/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [product] }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-idempotency-key': crypto.randomUUID() // Send idempotency key from client
+        },
+        body: JSON.stringify({ items: [{ id: product.id, quantity: 1 }] }),
       });
       
       console.log('Response status:', response.status);
@@ -62,10 +75,18 @@ export default function ProductCard({ product }: { product: Product, key?: strin
         <img 
           src={product.image} 
           alt={product.name}
-          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${product.imageClassName || ''}`}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${product.hoverImage ? 'group-hover:opacity-0' : 'group-hover:scale-110'} ${product.imageClassName || ''}`}
           referrerPolicy="no-referrer"
         />
-        <div className="absolute top-4 right-4 bg-golden-yellow text-maritime-navy px-3 py-1 rounded-full text-xs font-bold tracking-wider">
+        {product.hoverImage && (
+          <img 
+            src={product.hoverImage} 
+            alt={`${product.name} alternate view`}
+            className={`absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-110 ${product.imageClassName || ''}`}
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <div className="absolute top-4 right-4 bg-golden-yellow text-maritime-navy px-3 py-1 rounded-full text-xs font-bold tracking-wider z-10">
           NEW ARRIVAL
         </div>
       </div>

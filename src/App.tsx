@@ -5,24 +5,8 @@ import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import Success from './pages/Success';
 import Cancel from './pages/Cancel';
-
-const PRODUCTS = [
-  {
-    id: 'cutting-board',
-    name: 'Pro-Series Marine Cutting Board',
-    price: 65,
-    image: 'https://drive.google.com/thumbnail?id=1EHmxNL9sFBGHsLKyRwf4JU4_XVY3ZLWj&sz=w1000',
-    description: 'High-density, non-porous marine-grade cutting surface. Designed to stay stable on deck while resisting odors and stains.',
-    imageClassName: 'object-bottom scale-[1.4] origin-bottom group-hover:scale-[1.5]'
-  },
-  {
-    id: 'cup-holder',
-    name: 'Technical Marine Cup Holder',
-    price: 45,
-    image: 'https://drive.google.com/thumbnail?id=1-LjdtHq2pk73sKcJ5ISa1dFKoZST7n7L&sz=w1000',
-    description: 'Precision-engineered cup holder designed for high-speed stability. Fits standard and oversized containers with secure grip technology.'
-  }
-];
+import Products from './pages/Products';
+import { PRODUCTS } from './data/products';
 
 export default function App() {
   const [path, setPath] = useState(window.location.pathname);
@@ -35,6 +19,7 @@ export default function App() {
 
   if (path === '/success') return <Success />;
   if (path === '/cancel') return <Cancel />;
+  if (path === '/products') return <Products />;
 
   return (
     <div className="min-h-screen">
@@ -129,14 +114,18 @@ export default function App() {
               <p className="text-maritime-navy/60 max-w-md">Curated technical add-ons for the modern mariner.</p>
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white border border-maritime-navy/10 rounded-full text-sm font-bold hover:bg-maritime-navy hover:text-white transition-all">ALL</button>
+              <a href="/products" onClick={(e) => {
+                e.preventDefault();
+                window.history.pushState({}, '', '/products');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }} className="px-4 py-2 bg-white border border-maritime-navy/10 rounded-full text-sm font-bold hover:bg-maritime-navy hover:text-white transition-all">ALL</a>
               <button className="px-4 py-2 bg-white border border-maritime-navy/10 rounded-full text-sm font-bold hover:bg-maritime-navy hover:text-white transition-all">STORAGE</button>
               <button className="px-4 py-2 bg-white border border-maritime-navy/10 rounded-full text-sm font-bold hover:bg-maritime-navy hover:text-white transition-all">LIGHTING</button>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {PRODUCTS.map(product => (
+            {PRODUCTS.filter(p => p.featured).map(product => (
               <ProductCard key={product.id} product={product} />
             ))}
             
