@@ -198,6 +198,8 @@ export default function App() {
             <div className="flex gap-8">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+              <a href="https://brandaisolutions.co.za" target="_blank" rel="noopener noreferrer"
+                 className="hover:text-white transition-colors">Built by Brand AI Solutions</a>
             </div>
           </div>
         </div>
